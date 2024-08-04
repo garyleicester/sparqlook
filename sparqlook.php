@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SparqLook</title>
+    <title>SPARQLook</title>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -38,9 +38,41 @@
             background-color: black;
             color: white;
             cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .input-container button:hover {
+        .input-container button:disabled {
+            cursor: not-allowed;
+        }
+        .input-container button:hover:not(:disabled) {
             background-color: #333;
+        }
+        .loading-spinner {
+            display: inline-block;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid white;
+            width: 12px;
+            height: 12px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            right: 10px;
+        }
+        .loading-ellipsis::after {
+            content: '...';
+            animation: ellipsis 1.5s infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes ellipsis {
+            0% { content: ''; }
+            33% { content: '.'; }
+            66% { content: '..'; }
+            100% { content: '...'; }
         }
         .results {
             margin-top: 20px;
@@ -96,10 +128,17 @@
             if (uri.startsWith(baseUri)) {
                 event.preventDefault(); // Prevent default behavior for internal links
                 document.getElementById('uriInput').value = uri; // Set the URI input value
+                showLoading(); // Trigger the loading state
                 document.getElementById('sparqlForm').submit(); // Submit the form
             } else {
                 event.target.setAttribute('target', '_blank'); // Open external links in a new tab
             }
+        }
+
+        function showLoading() {
+            var button = document.getElementById('submitButton');
+            button.disabled = true;
+            button.innerHTML = 'Looking... <div class="loading-spinner"></div>';
         }
     </script>
 </head>
@@ -115,13 +154,13 @@
     $baseUri = isset($parsedUrl['scheme']) && isset($parsedUrl['host']) ? $parsedUrl['scheme'] . '://' . $parsedUrl['host'] : '';
 
     ?>
-    <form id="sparqlForm" method="POST">
+    <form id="sparqlForm" method="POST" onsubmit="showLoading()">
         <div class="input-container">
             <input type="text" id="uriInput" name="uri" placeholder="URI (leave blank to explore)" value="<?php echo $subjectUri; ?>">
             <input type="text" name="endpoint" placeholder="Endpoint (required)" value="<?php echo $endpointUrl; ?>" required>
             <input type="text" name="username" placeholder="Username" value="<?php echo $username; ?>">
             <input type="password" name="password" placeholder="Password" value="<?php echo $password; ?>">
-            <button type="submit">Look!</button>
+            <button type="submit" id="submitButton">Look!</button>
         </div>
     </form>
 
@@ -131,51 +170,57 @@
             if (empty($subjectUri)) {
                 // SPARQL query when URI is not provided
                 $sparqlQuery = '
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX dcat: <http://www.w3.org/ns/dcat#>
-PREFIX dcterms: <http://purl.org/dc/terms/>
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                PREFIX dcat: <http://www.w3.org/ns/dcat#>
+                PREFIX dcterms: <http://purl.org/dc/terms/>
+                PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
-SELECT ?subject ?predicate ?object WHERE {
-  {
-    # Check for SKOS ConceptScheme
-    ?object ?p skos:ConceptScheme.
-    FILTER(isIRI(?object))
-    BIND(IRI("https://example.com/initialExplore") AS ?subject)
-    BIND(IRI("https://example.com/possibleEntryPoint") AS ?predicate)
-  } UNION {
-    # Fallback to identifying datasets or catalogs
-    ?object rdf:type dcat:Dataset.
-    FILTER(isIRI(?object))
-    BIND(IRI("https://example.com/initialExploreDataset") AS ?subject)
-    BIND(IRI("https://example.com/possibleDataset") AS ?predicate)
-  } UNION {
-    # Fallback to identifying people or organizations
-    ?object rdf:type foaf:Person.
-    FILTER(isIRI(?object))
-    BIND(IRI("https://example.com/initialExplorePerson") AS ?subject)
-    BIND(IRI("https://example.com/possiblePerson") AS ?predicate)
-  } UNION {
-    # Fallback to identifying collections or bibliographic resources
-    ?object rdf:type dcterms:Collection.
-    FILTER(isIRI(?object))
-    BIND(IRI("https://example.com/initialExploreCollection") AS ?subject)
-    BIND(IRI("https://example.com/possibleCollection") AS ?predicate)
-  } UNION {
-    # Fallback to identifying highly connected nodes (example threshold)
-    {
-      SELECT ?object (COUNT(?s) AS ?inDegree) WHERE {
-        ?s ?p ?object.
-        FILTER(isIRI(?object))
-      }
-      GROUP BY ?object
-      HAVING (COUNT(?s) > 150) # Arbitrary threshold for highly connected
-    }
-    BIND(IRI("https://example.com/highlyConnected") AS ?subject)
-    BIND(IRI("https://example.com/highConnection") AS ?predicate)
-  }
-}
+                SELECT DISTINCT ?subject ?predicate ?object WHERE {
+                  {
+                    # Check for SKOS ConceptScheme
+                    ?object ?p skos:ConceptScheme.
+                    FILTER(isIRI(?object))
+                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                    BIND(IRI("https://example.com/possibleEntryPoint") AS ?predicate)
+                } UNION {
+                ?subjectIgnore skos:broader ?object
+                FILTER NOT EXISTS { ?object skos:broader ?broader }
+                FILTER(isIRI(?object))
+                BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                BIND(IRI("https://example.com/broadestConcepts") AS ?predicate)
+                } UNION {
+                    # Fallback to identifying datasets or catalogs
+                    ?object rdf:type dcat:Dataset.
+                    FILTER(isIRI(?object))
+                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                    BIND(IRI("https://example.com/possibleDataset") AS ?predicate)
+                  } UNION {
+                    # Fallback to identifying people or organizations
+                    ?object rdf:type foaf:Person.
+                    FILTER(isIRI(?object))
+                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                    BIND(IRI("https://example.com/possiblePerson") AS ?predicate)
+                  } UNION {
+                    # Fallback to identifying collections or bibliographic resources
+                    ?object rdf:type dcterms:Collection.
+                    FILTER(isIRI(?object))
+                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                    BIND(IRI("https://example.com/possibleCollection") AS ?predicate)
+                  } UNION {
+                    # Fallback to identifying highly connected nodes (example threshold)
+                    {
+                      SELECT ?object (COUNT(?s) AS ?inDegree) WHERE {
+                        ?s ?p ?object.
+                        FILTER(isIRI(?object))
+                      }
+                      GROUP BY ?object
+                      HAVING (COUNT(?s) > 150) # Arbitrary threshold for highly connected
+                    }
+                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                    BIND(IRI("https://example.com/highlyConnected") AS ?predicate)
+                  }
+                }
                 ';
             } else {
                 // SPARQL query with the subject URI
