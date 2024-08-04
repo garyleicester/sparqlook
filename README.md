@@ -2,7 +2,7 @@
 
 Try it at https://allophone.hamster.coffee/sparqlook.php
 
-Example endpoint - https://id.cabi.org/PoolParty/sparql/cabt
+Example endpoints - https://id.cabi.org/PoolParty/sparql/cabt & https://metadata.ilo.org/PoolParty/sparql/thesaurus
 
 A simple, lightweight, single php file tool for exploring SPARQL endpoints.
 
