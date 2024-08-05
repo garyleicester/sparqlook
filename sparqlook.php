@@ -166,62 +166,149 @@
 
     <div class="results">
         <?php
+        // Function to execute the SPARQL query
+        function executeSparqlQuery($endpointUrl, $sparqlQuery, $username, $password) {
+            $url = $endpointUrl . "?query=" . urlencode($sparqlQuery);
+            $headers = [
+                "Accept: application/sparql-results+json"
+            ];
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+            // Set authentication if provided
+            if (!empty($username) && !empty($password)) {
+                curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
+            }
+
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($response, true);
+        }
+
+        // Function to extract the display text from a URI
+        function extractDisplayText($uri) {
+            $parts = explode('#', $uri);
+            if (count($parts) > 1) {
+                return end($parts);
+            } else {
+                $parts = explode('/', $uri);
+                return end($parts);
+            }
+        }
+
+        // Group results by predicate
+        function groupResultsByPredicate($results) {
+            $groupedResults = [];
+            if (isset($results['results']['bindings']) && count($results['results']['bindings']) > 0) {
+                foreach ($results['results']['bindings'] as $result) {
+                    $subject = isset($result['subject']['value']) ? $result['subject']['value'] : '';
+                    $predicate = isset($result['predicate']['value']) ? $result['predicate']['value'] : '';
+                    $object = isset($result['object']['value']) ? $result['object']['value'] : '';
+                    $objectLabel = isset($result['objectLabel']['value']) ? $result['objectLabel']['value'] : '';
+
+                    if (!isset($groupedResults[$predicate])) {
+                        $groupedResults[$predicate] = [];
+                    }
+
+                    $groupedResults[$predicate][] = [
+                        'subject' => $subject,
+                        'object' => $object,
+                        'objectLabel' => $objectLabel,
+                    ];
+                }
+            }
+            return $groupedResults;
+        }
+
         if ($_SERVER["REQUEST_METHOD"] == "POST" && !empty($endpointUrl)) {
             if (empty($subjectUri)) {
-                // SPARQL query when URI is not provided
-                $sparqlQuery = '
-                PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-                PREFIX dcat: <http://www.w3.org/ns/dcat#>
-                PREFIX dcterms: <http://purl.org/dc/terms/>
-                PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-                SELECT DISTINCT ?subject ?predicate ?object WHERE {
-                  {
-                    # Check for SKOS ConceptScheme
-                    ?object ?p skos:ConceptScheme.
-                    FILTER(isIRI(?object))
-                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
-                    BIND(IRI("https://example.com/possibleEntryPoint") AS ?predicate)
-                } UNION {
-                ?subjectIgnore skos:broader ?object
-                FILTER NOT EXISTS { ?object skos:broader ?broader }
-                FILTER(isIRI(?object))
-                BIND(IRI("https://example.com/initialExplore") AS ?subject)
-                BIND(IRI("https://example.com/broadestConcepts") AS ?predicate)
-                } UNION {
-                    # Fallback to identifying datasets or catalogs
-                    ?object rdf:type dcat:Dataset.
-                    FILTER(isIRI(?object))
-                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
-                    BIND(IRI("https://example.com/possibleDataset") AS ?predicate)
-                  } UNION {
-                    # Fallback to identifying people or organizations
-                    ?object rdf:type foaf:Person.
-                    FILTER(isIRI(?object))
-                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
-                    BIND(IRI("https://example.com/possiblePerson") AS ?predicate)
-                  } UNION {
-                    # Fallback to identifying collections or bibliographic resources
-                    ?object rdf:type dcterms:Collection.
-                    FILTER(isIRI(?object))
-                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
-                    BIND(IRI("https://example.com/possibleCollection") AS ?predicate)
-                  } UNION {
-                    # Fallback to identifying highly connected nodes (example threshold)
-                    {
-                      SELECT ?object (COUNT(?s) AS ?inDegree) WHERE {
-                        ?s ?p ?object.
-                        FILTER(isIRI(?object))
-                      }
-                      GROUP BY ?object
-                      HAVING (COUNT(?s) > 150) # Arbitrary threshold for highly connected
+                // Array of SPARQL queries for initial exploration
+                $exploreQueries = [
+                    // Query to check for SKOS ConceptScheme
+                    '
+                    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                    SELECT DISTINCT ?subject ?predicate ?object WHERE {
+                      ?object ?p skos:ConceptScheme.
+                      FILTER(isIRI(?object))
+                      BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                      BIND(IRI("https://example.com/possibleEntryPoint") AS ?predicate)
                     }
-                    BIND(IRI("https://example.com/initialExplore") AS ?subject)
-                    BIND(IRI("https://example.com/highlyConnected") AS ?predicate)
-                  }
+                    ',
+                    // Query to find broadest SKOS concepts
+                    '
+                    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                    SELECT DISTINCT ?subject ?predicate ?object WHERE {
+                      ?subjectIgnore skos:broader ?object.
+                      FILTER NOT EXISTS { ?object skos:broader ?broader }
+                      FILTER(isIRI(?object))
+                      BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                      BIND(IRI("https://example.com/broadestConcepts") AS ?predicate)
+                    }
+                    ',
+                    // Query to find datasets or catalogs
+                    '
+                    PREFIX dcat: <http://www.w3.org/ns/dcat#>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    SELECT DISTINCT ?subject ?predicate ?object WHERE {
+                      ?object rdf:type dcat:Dataset.
+                      FILTER(isIRI(?object))
+                      BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                      BIND(IRI("https://example.com/possibleDataset") AS ?predicate)
+                    }
+                    ',
+                    // Query to find people or organizations
+                    '
+                    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    SELECT DISTINCT ?subject ?predicate ?object WHERE {
+                      ?object rdf:type foaf:Person.
+                      FILTER(isIRI(?object))
+                      BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                      BIND(IRI("https://example.com/possiblePerson") AS ?predicate)
+                    }
+                    ',
+                    // Query to find collections or bibliographic resources
+                    '
+                    PREFIX dcterms: <http://purl.org/dc/terms/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    SELECT DISTINCT ?subject ?predicate ?object WHERE {
+                      ?object rdf:type dcterms:Collection.
+                      FILTER(isIRI(?object))
+                      BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                      BIND(IRI("https://example.com/possibleCollection") AS ?predicate)
+                    }
+                    ',
+                    // Query to find highly connected nodes
+                    '
+                    SELECT ?subject ?predicate ?object WHERE {
+                      {
+                        SELECT ?object (COUNT(?s) AS ?inDegree) WHERE {
+                          ?s ?p ?object.
+                          FILTER(isIRI(?object))
+                        }
+                        GROUP BY ?object
+                        HAVING (COUNT(?s) > 150)
+                      }
+                      BIND(IRI("https://example.com/initialExplore") AS ?subject)
+                      BIND(IRI("https://example.com/highlyConnected") AS ?predicate)
+                    }
+                    ',
+                ];
+
+                $groupedResults = [];
+
+                // Execute each query until results are found
+                foreach ($exploreQueries as $query) {
+                    $results = executeSparqlQuery($endpointUrl, $query, $username, $password);
+                    $groupedResults = groupResultsByPredicate($results);
+                    if (!empty($groupedResults)) {
+                        break; // Stop if results are found
+                    }
                 }
-                ';
             } else {
                 // SPARQL query with the subject URI
                 $sparqlQuery = '
@@ -247,64 +334,9 @@
                 }
                 GROUP BY ?subject ?predicate ?originalO ?formattedO
                 ';
-            }
 
-            // Function to execute the SPARQL query
-            function executeSparqlQuery($endpointUrl, $sparqlQuery, $username, $password) {
-                $url = $endpointUrl . "?query=" . urlencode($sparqlQuery);
-                $headers = [
-                    "Accept: application/sparql-results+json"
-                ];
-
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $url);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-                // Set authentication if provided
-                if (!empty($username) && !empty($password)) {
-                    curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
-                }
-
-                $response = curl_exec($ch);
-                curl_close($ch);
-
-                return json_decode($response, true);
-            }
-
-            // Function to extract the display text from a URI
-            function extractDisplayText($uri) {
-                $parts = explode('#', $uri);
-                if (count($parts) > 1) {
-                    return end($parts);
-                } else {
-                    $parts = explode('/', $uri);
-                    return end($parts);
-                }
-            }
-
-            // Execute the query and get results
-            $results = executeSparqlQuery($endpointUrl, $sparqlQuery, $username, $password);
-
-            // Group results by predicate
-            $groupedResults = [];
-            if (isset($results['results']['bindings']) && count($results['results']['bindings']) > 0) {
-                foreach ($results['results']['bindings'] as $result) {
-                    $subject = isset($result['subject']['value']) ? $result['subject']['value'] : '';
-                    $predicate = isset($result['predicate']['value']) ? $result['predicate']['value'] : '';
-                    $object = isset($result['object']['value']) ? $result['object']['value'] : '';
-                    $objectLabel = isset($result['objectLabel']['value']) ? $result['objectLabel']['value'] : '';
-
-                    if (!isset($groupedResults[$predicate])) {
-                        $groupedResults[$predicate] = [];
-                    }
-
-                    $groupedResults[$predicate][] = [
-                        'subject' => $subject,
-                        'object' => $object,
-                        'objectLabel' => $objectLabel,
-                    ];
-                }
+                $results = executeSparqlQuery($endpointUrl, $sparqlQuery, $username, $password);
+                $groupedResults = groupResultsByPredicate($results);
             }
 
             // Display grouped results
