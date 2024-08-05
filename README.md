@@ -1,6 +1,6 @@
 **SPARQLook**
 
-A simple, lightweight, single php file tool for exploring SPARQL endpoints.
+A simple, lightweight, single php file tool for exploring SPARQL endpoints. It should be easy to host on any Apache webserver, for instance.
 
 Try it at https://allophone.hamster.coffee/sparqlook.php
 
