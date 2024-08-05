@@ -352,6 +352,11 @@
                 cleanObjectLabels($groupedResults); // Clean up objectLabels
             }
 
+			// Function to determine if a string is a valid URL
+			function isValidUrl($url) {
+				return preg_match('/\b((http|https):\/\/\S+)/i', $url);
+			}
+
             // Display grouped results
             if (!empty($groupedResults)) {
                 foreach ($groupedResults as $predicate => $objects) {
@@ -364,10 +369,11 @@
                         $objectLabel = $objectData['objectLabel'];
                         $objectDisplayText = $objectLabel ? $objectLabel : $object;
 
-                        if (filter_var($object, FILTER_VALIDATE_URL)) {
-                            echo "<div class='object'><a href=\"" . htmlspecialchars($object) . "\" onclick=\"handleLinkClick(event, '" . htmlspecialchars($object) . "', '" . $baseUri . "')\">" . htmlspecialchars($objectDisplayText) . "</a></div>";
+                        // Ensure proper encoding and handling of special characters in URIs
+                        if (isValidUrl($object)) {
+                            echo "<div class='object'><a href=\"" . htmlspecialchars($object, ENT_QUOTES, 'UTF-8') . "\" onclick=\"handleLinkClick(event, '" . htmlspecialchars($object, ENT_QUOTES, 'UTF-8') . "', '" . $baseUri . "')\">" . htmlspecialchars($objectDisplayText, ENT_QUOTES, 'UTF-8') . "</a></div>";
                         } else {
-                            echo "<div class='object'>" . htmlspecialchars($objectDisplayText) . "</div>";
+                            echo "<div class='object'>" . htmlspecialchars($objectDisplayText, ENT_QUOTES, 'UTF-8') . "</div>";
                         }
                     }
                 }
