@@ -5,8 +5,11 @@ Try it at https://allophone.hamster.coffee/sparqlook.php
 Some example endpoints to try -
 
 https://id.cabi.org/PoolParty/sparql/cabt
+
 https://metadata.ilo.org/PoolParty/sparql/thesaurus
+
 https://cgi.vocabs.ga.gov.au/sparql/
+
 https://dbpedia.org/sparql
 
 A simple, lightweight, single php file tool for exploring SPARQL endpoints.
