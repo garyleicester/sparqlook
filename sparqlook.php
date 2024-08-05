@@ -224,6 +224,17 @@
             return $groupedResults;
         }
 
+        // Function to clean up objectLabels in the results
+        function cleanObjectLabels(&$groupedResults) {
+            foreach ($groupedResults as $predicate => &$objects) {
+                foreach ($objects as &$objectData) {
+                    if (isset($objectData['objectLabel']) && trim($objectData['objectLabel']) === '()') {
+                        $objectData['objectLabel'] = ''; // Clear the empty label
+                    }
+                }
+            }
+        }
+
         if ($_SERVER["REQUEST_METHOD"] == "POST" && !empty($endpointUrl)) {
             if (empty($subjectUri)) {
                 // Array of SPARQL queries for initial exploration
@@ -305,6 +316,7 @@
                 foreach ($exploreQueries as $query) {
                     $results = executeSparqlQuery($endpointUrl, $query, $username, $password);
                     $groupedResults = groupResultsByPredicate($results);
+                    cleanObjectLabels($groupedResults); // Clean up objectLabels
                     if (!empty($groupedResults)) {
                         break; // Stop if results are found
                     }
@@ -337,6 +349,7 @@
 
                 $results = executeSparqlQuery($endpointUrl, $sparqlQuery, $username, $password);
                 $groupedResults = groupResultsByPredicate($results);
+                cleanObjectLabels($groupedResults); // Clean up objectLabels
             }
 
             // Display grouped results
