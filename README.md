@@ -16,6 +16,6 @@ https://dbpedia.org/sparql
 
 I'm intuitive. And nosey. And impatient. I want to take a look. I built this to let me poke around a(ny) SPARQL endpoint.
 
-Best if you know the URI you want to start at as well as the endpoint address, but leaving the URI blank will retrieve some suggested starting points.
+Best if you know the URI you want to start at as well as the endpoint address, but leaving the URI blank will retrieve some suggested starting points, using a number of 'initial explore' strategies that can be added to in the code.
 
 I mostly work with SKOS thesauri, so currently leans a little too heavily that way.
