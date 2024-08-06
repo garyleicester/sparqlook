@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SPARQLook</title>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Open Sans', sans-serif;
-            color: black;
-            background-color: white;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00ff00;
+            background-color: black;
             margin: 0;
             padding: 20px;
         }
@@ -17,12 +16,18 @@
             display: flex;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #111;
         }
         .input-container input,
         .input-container button {
             padding: 10px;
-            border: none;
-            border-radius: 15px;
+            border: 1px solid #00ff00;
+            background-color: black;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
             margin-right: 10px;
             margin-bottom: 10px;
             flex-grow: 1;
@@ -31,12 +36,7 @@
         #uriInput {
             text-align: left;
         }
-        .input-container input {
-            border: 1px solid #000;
-        }
         .input-container button {
-            background-color: black;
-            color: white;
             cursor: pointer;
             position: relative;
             display: flex;
@@ -47,13 +47,13 @@
             cursor: not-allowed;
         }
         .input-container button:hover:not(:disabled) {
-            background-color: #333;
+            background-color: #00cc00;
         }
         .loading-spinner {
             display: inline-block;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(0, 255, 0, 0.3);
             border-radius: 50%;
-            border-top: 2px solid white;
+            border-top: 2px solid #00ff00;
             width: 12px;
             height: 12px;
             animation: spin 1s linear infinite;
@@ -76,6 +76,10 @@
         }
         .results {
             margin-top: 20px;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #111;
         }
         .predicate {
             margin-bottom: 10px;
@@ -84,20 +88,22 @@
         .predicate a {
             display: inline-block;
             background-color: black;
-            color: white;
+            color: #00ff00;
             text-decoration: none;
             padding: 5px 10px;
-            border-radius: 15px;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
         }
         .predicate a:hover {
-            background-color: #333;
+            background-color: #00cc00;
         }
         .object {
             margin-left: 20px;
             position: relative;
         }
         .object a {
-            color: black;
+            color: #00ff00;
             text-decoration: none;
             padding-left: 20px; /* Space for arrow */
             display: inline-block;
@@ -108,22 +114,21 @@
             left: 0;
             top: 0;
             font-weight: bold;
-            color: black;
+            color: #00ff00;
         }
         a:hover {
             text-decoration: underline;
         }
-@media (max-width: 600px) {
-    .input-container {
-        flex-direction: column;
-    }
-    .input-container input, .input-container button {
-        margin-right: 0;
-        width: 100%;
-        box-sizing: border-box; /* Ensures padding is included in the width */
-    }
-}
-
+        @media (max-width: 600px) {
+            .input-container {
+                flex-direction: column;
+            }
+            .input-container input, .input-container button {
+                margin-right: 0;
+                width: 100%;
+                box-sizing: border-box; /* Ensures padding is included in the width */
+            }
+        }
     </style>
     <script>
         function handleLinkClick(event, uri, baseUri) {
