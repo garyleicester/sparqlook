@@ -354,7 +354,7 @@
 
 			// Function to determine if a string is a valid URL
 			function isValidUrl($url) {
-				return preg_match('/^((http|https):\/\/\S+)/i', $url);
+				return preg_match('/^((http|https):\/\/[^\s]+?)$/i', $url);
 			}
 
             // Display grouped results
