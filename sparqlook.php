@@ -113,15 +113,17 @@
         a:hover {
             text-decoration: underline;
         }
-        @media (max-width: 600px) {
-            .input-container {
-                flex-direction: column;
-            }
-            .input-container input, .input-container button {
-                margin-right: 0;
-                width: 100%;
-            }
-        }
+@media (max-width: 600px) {
+    .input-container {
+        flex-direction: column;
+    }
+    .input-container input, .input-container button {
+        margin-right: 0;
+        width: 100%;
+        box-sizing: border-box; /* Ensures padding is included in the width */
+    }
+}
+
     </style>
     <script>
         function handleLinkClick(event, uri, baseUri) {
@@ -158,8 +160,8 @@
         <div class="input-container">
             <input type="text" id="uriInput" name="uri" placeholder="URI (leave blank to explore)" value="<?php echo $subjectUri; ?>">
             <input type="text" name="endpoint" placeholder="Endpoint (required)" value="<?php echo $endpointUrl; ?>" required>
-            <input type="text" name="username" placeholder="Username" value="<?php echo $username; ?>">
-            <input type="password" name="password" placeholder="Password" value="<?php echo $password; ?>">
+            <input type="text" name="username" placeholder="Username" value="<?php echo $username; ?>" autocomplete="username">
+            <input type="password" name="password" placeholder="Password" value="<?php echo $password; ?>" autocomplete="current-password">
             <button type="submit" id="submitButton">Look!</button>
         </div>
     </form>
