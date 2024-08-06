@@ -6,6 +6,8 @@ Try it at https://allophone.hamster.coffee/sparqlook.php
 
 Some example endpoints to try -
 
+https://agrovoc.fao.org/sparql
+
 https://id.cabi.org/PoolParty/sparql/cabt
 
 https://metadata.ilo.org/PoolParty/sparql/thesaurus
