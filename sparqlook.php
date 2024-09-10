@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Courier New', Courier, monospace;
-            color: #00ff00;
+            color: white;
             background-color: black;
             margin: 0;
             padding: 20px;
@@ -16,7 +16,7 @@
             display: flex;
             margin-bottom: 20px;
             flex-wrap: wrap;
-            border: 1px solid #00ff00;
+            border: 1px solid white;
             padding: 10px;
             border-radius: 5px;
             background-color: #111;
@@ -24,9 +24,9 @@
         .input-container input,
         .input-container button {
             padding: 10px;
-            border: 1px solid #00ff00;
+            border: 1px solid white;
             background-color: black;
-            color: #00ff00;
+            color: white;
             font-family: 'Courier New', Courier, monospace;
             margin-right: 10px;
             margin-bottom: 10px;
@@ -47,13 +47,13 @@
             cursor: not-allowed;
         }
         .input-container button:hover:not(:disabled) {
-            background-color: #00cc00;
+            background-color: grey;
         }
         .loading-spinner {
             display: inline-block;
             border: 2px solid rgba(0, 255, 0, 0.3);
             border-radius: 50%;
-            border-top: 2px solid #00ff00;
+            border-top: 2px solid white;
             width: 12px;
             height: 12px;
             animation: spin 1s linear infinite;
@@ -76,7 +76,7 @@
         }
         .results {
             margin-top: 20px;
-            border: 1px solid #00ff00;
+            border: 1px solid white;
             padding: 10px;
             border-radius: 5px;
             background-color: #111;
@@ -88,22 +88,22 @@
         .predicate a {
             display: inline-block;
             background-color: black;
-            color: #00ff00;
+            color: white;
             text-decoration: none;
             padding: 5px 10px;
-            border: 1px solid #00ff00;
+            border: 1px solid white;
             border-radius: 5px;
             font-family: 'Courier New', Courier, monospace;
         }
         .predicate a:hover {
-            background-color: #00cc00;
+            background-color: grey;
         }
         .object {
             margin-left: 20px;
             position: relative;
         }
         .object a {
-            color: #00ff00;
+            color: white;
             text-decoration: none;
             padding-left: 20px; /* Space for arrow */
             display: inline-block;
@@ -114,7 +114,7 @@
             left: 0;
             top: 0;
             font-weight: bold;
-            color: #00ff00;
+            color: white;
         }
         a:hover {
             text-decoration: underline;
@@ -378,7 +378,7 @@
 
                         // Ensure proper encoding and handling of special characters in URIs
                         if (isValidUrl($object)) {
-                            echo "<div class='object'><a href=\"" . htmlspecialchars($object, ENT_QUOTES, 'UTF-8') . "\" onclick=\"handleLinkClick(event, '" . htmlspecialchars($object, ENT_QUOTES, 'UTF-8') . "', '" . $baseUri . "')\">" . htmlspecialchars($objectDisplayText, ENT_QUOTES, 'UTF-8') . "</a></div>";
+                            echo "<div class='object'><a href=\"" . htmlspecialchars($object, ENT_QUOTES, 'UTF-8') . "\" onclick=\"handleLinkClick(event, '" . htmlspecialchars($object, ENT_QUOTES, 'UTF-8') . "', '" . $baseUri . "')\">" . str_replace(['&', '/'], ['&&#8203;', '/&#8203;'], htmlspecialchars($objectDisplayText, ENT_QUOTES, 'UTF-8')) . "</a></div>";
                         } else {
                             echo "<div class='object'>" . htmlspecialchars($objectDisplayText, ENT_QUOTES, 'UTF-8') . "</div>";
                         }
